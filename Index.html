@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI API Key Manager Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { transition: all 0.3s ease; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass:hover { background: rgba(30, 41, 59, 0.9); border-color: rgba(255, 255, 255, 0.2); }
+        .card-gradient { background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); }
+        .sidebar { background: rgba(15, 23, 42, 0.8); }
+        .stat-box { background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .success-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .toast { animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+    <div class="flex gap-6 max-w-7xl mx-auto">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 h-fit rounded-xl p-6 sticky top-4">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">API Keys Pro</h1>
+                <p class="text-xs text-slate-400 mt-1">Manage all your AI API keys</p>
+            </div>
+            
+            <nav class="space-y-2">
+                <button onclick="switchTab('dashboard')" class="nav-btn w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-600/30 active:bg-indigo-600">📊 Dashboard</button>
+                <button onclick="switchTab('keys')" class="nav-btn w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-600/30 active:bg-indigo-600">🔑 All Keys</button>
+                <button onclick="switchTab('analytics')" class="nav-btn w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-600/30 active:bg-indigo-600">📈 Analytics</button>
+                <button onclick="switchTab('logs')" class="nav-btn w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-600/30 active:bg-indigo-600">📋 Activity Logs</button>
+                <button onclick="switchTab('settings')" class="nav-btn w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-600/30 active:bg-indigo-600">⚙️ Settings</button>
+            </nav>
+
+            <hr class="border-slate-700 my-6">
+            
+            <div class="text-xs text-slate-400 space-y-2">
+                <p><strong>Theme:</strong></p>
+                <div class="flex gap-2">
+                    <button onclick="setTheme('dark')" class="px-2 py-1 bg-slate-700 rounded text-xs" id="themeBtn">🌙 Dark</button>
+                    <button onclick="setTheme('light')" class="px-2 py-1 bg-slate-600 rounded text-xs">☀️ Light</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content">
+                <div class="mb-6">
+                    <h2 class="text-3xl font-bold mb-4">Dashboard</h2>
+                    <div class="grid grid-cols-4 gap-4">
+                        <div class="stat-box rounded-lg p-4">
+                            <p class="text-slate-400 text-sm">Total Keys</p>
+                            <p class="text-2xl font-bold mt-2" id="totalKeys">0</p>
+                        </div>
+                        <div class="stat-box rounded-lg p-4">
+                            <p class="text-slate-400 text-sm">Active Keys</p>
+                            <p class="text-2xl font-bold mt-2 text-green-400" id="activeKeys">0</p>
+                        </div>
+                        <div class="stat-box rounded-lg p-4">
+                            <p class="text-slate-400 text-sm">Calls Today</p>
+                            <p class="text-2xl font-bold mt-2 text-blue-400" id="callsToday">0</p>
+                        </div>
+                        <div class="stat-box rounded-lg p-4">
+                            <p class="text-slate-400 text-sm">Expiring Soon</p>
+                            <p class="text-2xl font-bold mt-2 text-yellow-400" id="expiringCount">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">Recent Activity</h3>
+                        <div id="recentActivity" class="space-y-3 text-sm"></div>
+                    </div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">API Provider Distribution</h3>
+                        <div id="providerStats" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Keys Tab -->
+            <div id="keys" class="tab-content hidden">
+                <div class="mb-6 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-bold">API Keys</h2>
+                        <p class="text-slate-400 mt-1">Create and manage your secret keys</p>
+                    </div>
+                    <button onclick="openModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-2 rounded-lg font-medium">
+                        + Create Key
+                    </button>
+                </div>
+
+                <div class="mb-4 flex gap-3">
+                    <input type="text" id="searchBox" placeholder="🔍 Search keys..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500">
+                    <select id="filterProvider" class="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500">
+                        <option value="">All Providers</option>
+                        <option value="claude">Claude</option>
+                        <option value="chatgpt">ChatGPT</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="llama">LLaMA</option>
+                        <option value="cohere">Cohere</option>
+                        <option value="openrouter">OpenRouter</option>
+                    </select>
+                    <select id="filterStatus" class="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                </div>
+
+                <div class="glass rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-800/50 text-slate-400 uppercase text-xs border-b border-slate-700">
+                            <tr>
+                                <th class="px-6 py-4">Name</th>
+                                <th class="px-6 py-4">Provider</th>
+                                <th class="px-6 py-4">Key</th>
+                                <th class="px-6 py-4">Type</th>
+                                <th class="px-6 py-4">Status</th>
+                                <th class="px-6 py-4">Expires</th>
+                                <th class="px-6 py-4">Calls</th>
+                                <th class="px-6 py-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keyTableBody" class="divide-y divide-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6">Analytics</h2>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">Usage by Provider</h3>
+                        <canvas id="providerChart" class="w-full h-64"></canvas>
+                    </div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">API Calls Trend</h3>
+                        <canvas id="trendChart" class="w-full h-64"></canvas>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-6 mt-6">
+                    <h3 class="font-bold mb-4">Detailed Stats</h3>
+                    <div id="detailedStats" class="grid grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+
+            <!-- Activity Logs Tab -->
+            <div id="logs" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6">Activity Logs</h2>
+                <div class="glass rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-800/50 text-slate-400 uppercase text-xs border-b border-slate-700">
+                            <tr>
+                                <th class="px-6 py-4">Timestamp</th>
+                                <th class="px-6 py-4">Action</th>
+                                <th class="px-6 py-4">Key</th>
+                                <th class="px-6 py-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsBody" class="divide-y divide-slate-700">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="tab-content hidden">
+                <h2 class="text-3xl font-bold mb-6">Settings & Utilities</h2>
+                <div class="space-y-6">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">🔄 Data Management</h3>
+                        <div class="space-y-3">
+                            <button onclick="exportData()" class="w-full bg-indigo-600 hover:bg-indigo-500 px-4 py-3 rounded-lg font-medium text-left">
+                                📥 Export All Keys (JSON)
+                            </button>
+                            <button onclick="importData()" class="w-full bg-indigo-600 hover:bg-indigo-500 px-4 py-3 rounded-lg font-medium text-left">
+                                📤 Import Keys
+                            </button>
+                            <button onclick="clearAllData()" class="w-full bg-red-600 hover:bg-red-500 px-4 py-3 rounded-lg font-medium text-left">
+                                🗑️ Clear All Data
+                            </button>
+                        </div>
+                    </div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">⚙️ Preferences</h3>
+                        <div class="space-y-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="maskKeys" checked onchange="toggleKeyMasking()" class="mr-3">
+                                <span>Mask API keys by default</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="notifyExpiry" checked onchange="toggleExpiryNotification()" class="mr-3">
+                                <span>Notify about expiring keys</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="autoBackup" checked class="mr-3">
+                                <span>Auto-backup keys daily</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-bold mb-4">📚 Quick Links</h3>
+                        <div class="space-y-2">
+                            <a href="https://docs.anthropic.com" target="_blank" class="block text-indigo-400 hover:text-indigo-300">→ Claude API Documentation</a>
+                            <a href="https://openai.com/docs" target="_blank" class="block text-indigo-400 hover:text-indigo-300">→ ChatGPT API Documentation</a>
+                            <a href="https://ai.google.dev" target="_blank" class="block text-indigo-400 hover:text-indigo-300">→ Gemini API Documentation</a>
+                            <a href="https://www.llama2.ai" target="_blank" class="block text-indigo-400 hover:text-indigo-300">→ LLaMA Documentation</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create/Edit Key Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50">
+        <div class="glass p-8 rounded-xl w-full max-w-2xl max-h-96 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6">Create New API Key</h2>
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Key Name *</label>
+                        <input type="text" id="keyName" placeholder="e.g., Production Key" class="w-full bg-slate-900 border border-slate-700 rounded p-3 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">AI Provider *</label>
+                        <select id="provider" class="w-full bg-slate-900 border border-slate-700 rounded p-3 focus:outline-none focus:border-indigo-500">
+                            <option value="claude">Claude (Anthropic)</option>
+                            <option value="chatgpt">ChatGPT (OpenAI)</option>
+                            <option value="gemini">Gemini (Google)</option>
+                            <option value="llama">LLaMA (Meta)</option>
+                            <option value="cohere">Cohere</option>
+                            <option value="openrouter">OpenRouter</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Key Type *</label>
+                        <select id="keyType" class="w-full bg-slate-900 border border-slate-700 rounded p-3 focus:outline-none focus:border-indigo-500">
+                            <option value="full">Full Access</option>
+                            <option value="read">Read-Only</option>
+                            <option value="limited">Limited</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Expiration</label>
+                        <input type="date" id="expiryDate" class="w-full bg-slate-900 border border-slate-700 rounded p-3 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Rate Limit (requests/min)</label>
+                    <input type="number" id="rateLimit" value="100" class="w-full bg-slate-900 border border-slate-700 rounded p-3 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Description</label>
+                    <textarea id="description" placeholder="Add notes about this key..." class="w-full bg-slate-900 border border-slate-700 rounded p-3 focus:outline-none focus:border-indigo-500 h-20"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4">
+                    <button onclick="closeModal()" class="px-6 py-2 text-slate-400 hover:text-white">Cancel</button>
+                    <button onclick="generateKey()" class="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-2 rounded font-medium">Generate Key</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Display Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center p-4 z-50">
+        <div class="glass p-8 rounded-xl w-full max-w-md">
+            <div class="text-center mb-4">
+                <div class="text-4xl mb-2">✅</div>
+                <h2 class="text-2xl font-bold">Key Created Successfully</h2>
+            </div>
+            <p class="text-sm text-slate-400 mb-4">Copy this key now. You won't be able to see it again.</p>
+            <div class="bg-slate-900 border border-slate-700 rounded p-4 mb-6">
+                <p class="text-xs text-slate-400 mb-2">Secret Key:</p>
+                <div class="flex items-center gap-2">
+                    <code id="displayKey" class="text-indigo-400 font-mono text-sm break-all flex-1"></code>
+                    <button onclick="copyKey()" class="text-xs bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded whitespace-nowrap">Copy</button>
+                </div>
+            </div>
+            <button onclick="closeSuccess()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-2 rounded font-medium">Done</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg hidden z-50"></div>
+
+    <script>
+        const PROVIDERS = {
+            claude: { name: 'Claude', color: '#8b5cf6', icon: '🤖' },
+            chatgpt: { name: 'ChatGPT', color: '#10a981', icon: '💬' },
+            gemini: { name: 'Gemini', color: '#4f46e5', icon: '✨' },
+            llama: { name: 'LLaMA', color: '#f59e0b', icon: '🦙' },
+            cohere: { name: 'Cohere', color: '#ec4899', icon: '🌊' },
+            openrouter: { name: 'OpenRouter', color: '#06b6d4', icon: '🔀' }
+        };
+
+        let keys = JSON.parse(localStorage.getItem('ai_api_keys')) || [];
+        let activityLogs = JSON.parse(localStorage.getItem('activity_logs')) || [];
+        let currentTab = 'dashboard';
+        let maskKeysFlag = true;
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tab).classList.remove('hidden');
+            currentTab = tab;
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-indigo-600'));
+            event.target.classList.add('bg-indigo-600');
+
+            if(tab === 'dashboard') updateDashboard();
+            if(tab === 'keys') renderTable();
+            if(tab === 'analytics') renderAnalytics();
+            if(tab === 'logs') renderLogs();
+        }
+
+        function updateDashboard() {
+            document.getElementById('totalKeys').innerText = keys.length;
+            const activeCount = keys.filter(k => k.status === 'active').length;
+            document.getElementById('activeKeys').innerText = activeCount;
+            
+            const totalCalls = keys.reduce((sum, k) => sum + (k.calls || 0), 0);
+            document.getElementById('callsToday').innerText = totalCalls;
+            
+            const expiringCount = keys.filter(k => {
+                if(!k.expires) return false;
+                const daysLeft = (new Date(k.expires) - new Date()) / (1000 * 60 * 60 * 24);
+                return daysLeft > 0 && daysLeft < 7;
+            }).length;
+            document.getElementById('expiringCount').innerText = expiringCount;
+
+            // Recent Activity
+            const recentActivity = document.getElementById('recentActivity');
+            recentActivity.innerHTML = activityLogs.slice(-5).reverse().map(log => 
+                `<div class="p-3 bg-slate-700/30 rounded"><p>${log.action}</p><p class="text-xs text-slate-400 mt-1">${log.timestamp}</p></div>`
+            ).join('');
+
+            // Provider Distribution
+            const providerStats = document.getElementById('providerStats');
+            const providerCounts = {};
+            keys.forEach(k => {
+                providerCounts[k.provider] = (providerCounts[k.provider] || 0) + 1;
+            });
+            providerStats.innerHTML = Object.entries(providerCounts).map(([prov, count]) =>
+                `<div class="flex justify-between"><span>${PROVIDERS[prov]?.icon} ${PROVIDERS[prov]?.name}</span><strong>${count}</strong></div>`
+            ).join('');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('keyTableBody');
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const filterProv = document.getElementById('filterProvider').value;
+            const filterStat = document.getElementById('filterStatus').value;
+
+            let filtered = keys.filter(k => 
+                (k.name.toLowerCase().includes(searchTerm)) &&
+                (!filterProv || k.provider === filterProv) &&
+                (!filterStat || k.status === filterStat)
+            );
+
+            if(!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="p-10 text-center text-slate-500">No keys found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((key, idx) => {
+                const statusColor = key.status === 'active' ? 'text-green-400' : key.status === 'expired' ? 'text-red-400' : 'text-yellow-400';
+                const isExpiring = key.expires && (new Date(key.expires) - new Date()) / (1000 * 60 * 60 * 24) < 7;
+                const maskedKey = maskKeysFlag ? `${key.fullKey?.substring(0, 8)}...${key.fullKey?.slice(-4)}` : key.fullKey;
+                
+                return `
+                    <tr class="hover:bg-white/5">
+                        <td class="px-6 py-4 font-medium">${key.name}</td>
+                        <td class="px-6 py-4">${PROVIDERS[key.provider]?.icon} ${PROVIDERS[key.provider]?.name}</td>
+                        <td class="px-6 py-4 font-mono text-xs text-indigo-400"><code>${maskedKey}</code></td>
+                        <td class="px-6 py-4 text-sm"><span class="badge bg-indigo-600/30">${key.type}</span></td>
+                        <td class="px-6 py-4 text-sm"><span class="badge ${statusColor === 'text-green-400' ? 'bg-green-600/30' : statusColor === 'text-red-400' ? 'bg-red-600/30' : 'bg-yellow-600/30'} ${statusColor}">${key.status}</span></td>
+                        <td class="px-6 py-4 text-sm ${isExpiring ? 'text-yellow-400 font-bold' : ''}">${key.expires ? key.expires : '-'}</td>
+                        <td class="px-6 py-4 text-sm text-slate-400">${key.calls || 0}</td>
+                        <td class="px-6 py-4 space-x-2">
+                            <button onclick="toggleKeyStatus(${keys.indexOf(key)})" class="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded">Toggle</button>
+                            <button onclick="deleteKey(${keys.indexOf(key)})" class="text-xs px-2 py-1 bg-red-600/30 text-red-400 hover:bg-red-600/50 rounded">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderAnalytics() {
+            const detailedStats = document.getElementById('detailedStats');
+            const stats = {};
+            
+            keys.forEach(k => {
+                if(!stats[k.provider]) stats[k.provider] = { count: 0, calls: 0, rateLimit: 0 };
+                stats[k.provider].count++;
+                stats[k.provider].calls += k.calls || 0;
+                stats[k.provider].rateLimit += k.rateLimit || 0;
+            });
+
+            detailedStats.innerHTML = Object.entries(stats).map(([prov, data]) =>
+                `<div class="stat-box rounded p-4">
+                    <p>${PROVIDERS[prov]?.icon} ${PROVIDERS[prov]?.name}</p>
+                    <p class="text-2xl font-bold mt-2">${data.count}</p>
+                    <p class="text-xs text-slate-400 mt-1">${data.calls} calls • Limit: ${data.rateLimit}/min</p>
+                </div>`
+            ).join('');
+        }
+
+        function renderLogs() {
+            const logsBody = document.getElementById('logsBody');
+            logsBody.innerHTML = activityLogs.slice().reverse().map(log =>
+                `<tr class="hover:bg-white/5">
+                    <td class="px-6 py-4 text-sm">${log.timestamp}</td>
+                    <td class="px-6 py-4 text-sm">${log.action}</td>
+                    <td class="px-6 py-4 text-sm font-mono">${log.keyName}</td>
+                    <td class="px-6 py-4 text-sm"><span class="badge bg-green-600/30 text-green-400">Success</span></td>
+                </tr>`
+            ).join('');
+        }
+
+        function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function closeSuccess() { document.getElementById('successModal').classList.add('hidden'); }
+
+        function generateKey() {
+            const name = document.getElementById('keyName').value || 'Untitled';
+            const provider = document.getElementById('provider').value;
+            const keyType = document.getElementById('keyType').value;
+            const expires = document.getElementById('expiryDate').value;
+            const rateLimit = parseInt(document.getElementById('rateLimit').value) || 100;
+            const description = document.getElementById('description').value;
+
+            if(!name.trim()) { showToast('Please enter a key name'); return; }
+
+            const randomStr = [...Array(40)].map(() => Math.random().toString(36)[2]).join('').slice(0, 40);
+            const fullKey = `sk-${provider.toUpperCase()}-${randomStr}`;
+
+            const newKey = {
+                name,
+                provider,
+                type: keyType,
+                expires: expires || null,
+                rateLimit,
+                description,
+                status: 'active',
+                fullKey,
+                calls: 0,
+                created: new Date().toLocaleDateString(),
+                lastUsed: null
+            };
+
+            keys.push(newKey);
+            localStorage.setItem('ai_api_keys', JSON.stringify(keys));
+
+            addLog(`Created new ${provider} key: ${name}`);
+
+            document.getElementById('displayKey').innerText = fullKey;
+            closeModal();
+            document.getElementById('successModal').classList.remove('hidden');
+            
+            document.getElementById('keyName').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('expiryDate').value = '';
+        }
+
+        function copyKey() {
+            const keyText = document.getElementById('displayKey').innerText;
+            navigator.clipboard.writeText(keyText);
+            showToast('✓ Key copied to clipboard');
+        }
+
+        function toggleKeyStatus(idx) {
+            keys[idx].status = keys[idx].status === 'active' ? 'inactive' : 'active';
+            localStorage.setItem('ai_api_keys', JSON.stringify(keys));
+            addLog(`${keys[idx].status === 'active' ? 'Activated' : 'Deactivated'} key: ${keys[idx].name}`);
+            renderTable();
+            showToast(`Key ${keys[idx].status === 'active' ? 'activated' : 'deactivated'}`);
+        }
+
+        function deleteKey(idx) {
+            if(confirm(`Delete key "${keys[idx].name}"? This action cannot be undone.`)) {
+                const name = keys[idx].name;
+                keys.splice(idx, 1);
+                localStorage.setItem('ai_api_keys', JSON.stringify(keys));
+                addLog(`Deleted key: ${name}`);
+                renderTable();
+                showToast('Key deleted');
+            }
+        }
+
+        function addLog(action) {
+            activityLogs.push({
+                timestamp: new Date().toLocaleString(),
+                action: action,
+                keyName: 'System'
+            });
+            localStorage.setItem('activity_logs', JSON.stringify(activityLogs));
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function exportData() {
+            const data = {
+                keys: keys,
+                logs: activityLogs,
+                exported: new Date().toISOString()
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `api-keys-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            showToast('✓ Keys exported successfully');
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        keys = data.keys || [];
+                        localStorage.setItem('ai_api_keys', JSON.stringify(keys));
+                        addLog('Imported keys from backup');
+                        renderTable();
+                        showToast('✓ Keys imported successfully');
+                    } catch(err) {
+                        showToast('❌ Error importing file');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function clearAllData() {
+            if(confirm('Are you sure? This will permanently delete ALL keys and logs.')) {
+                keys = [];
+                activityLogs = [];
+                localStorage.clear();
+                renderTable();
+                showToast('✓ All data cleared');
+                window.location.reload();
+            }
+        }
+
+        function toggleKeyMasking() {
+            maskKeysFlag = document.getElementById('maskKeys').checked;
+            renderTable();
+        }
+
+        function toggleExpiryNotification() {
+            localStorage.setItem('notifyExpiry', document.getElementById('notifyExpiry').checked);
+        }
+
+        function setTheme(theme) {
+            if(theme === 'light') {
+                document.body.style.background = 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)';
+                document.body.style.color = '#0f172a';
+            } else {
+                document.body.style.background = 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)';
+                document.body.style.color = '#f8fafc';
+            }
+            localStorage.setItem('theme', theme);
+        }
+
+        // Event Listeners
+        document.getElementById('searchBox')?.addEventListener('input', renderTable);
+        document.getElementById('filterProvider')?.addEventListener('change', renderTable);
+        document.getElementById('filterStatus')?.addEventListener('change', renderTable);
+
+        // Initialize
+        updateDashboard();
+        if(localStorage.getItem('theme') === 'light') setTheme('light');
+    </script>
+</body>
+</html>
